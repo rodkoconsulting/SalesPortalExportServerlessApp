@@ -481,7 +481,13 @@ Resources:
                 Effect: Allow
                 Resource:
                   Fn::Sub: ${PipelineArtifactsBucket.Arn}/*
-
+        - PolicyName: CodePipelineSnsPublishAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+               - Effect: Allow
+                 Action: sns:Publish
+                 Resource: !Ref ManualApprovalNotificationArn
         - PolicyName: CodePipelineCodeBuildAndCloudformationAccess
           PolicyDocument:
             Version: "2012-10-17"
