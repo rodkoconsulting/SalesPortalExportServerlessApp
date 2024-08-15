@@ -1,92 +1,55 @@
 {
-  "Comment": "Runs a Lambda function to call an SSM doc and query SSM until job has completed or failed.",
-  "StartAt": "Run Command Flow",
+  "Comment": "An example of the Amazon States Language that runs an AWS Batch job and monitors the job until it completes.",
+  "StartAt": "Start Command Execution",
   "States": {
-    "Run Command Flow": {
-      "Type": "Parallel",
-      "Branches": [
-        {
-          "StartAt": "Start Command Execution",
-          "States": {
-            "Start Command Execution": {
-              "Type": "Task",
-              "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
-              "Parameters": {
-                "command": "run",
-                "orderNumber.$": "States.JsonToString($.orderNumber)"
-              },
-              "Next": "Wait Command Completion",
-              "InputPath": "$[0]"
-            },
-            "Wait Command Completion": {
-              "Type": "Wait",
-              "Seconds": 15,
-              "Next": "Check Command Status"
-            },
-            "Check Command Status": {
-              "Type": "Task",
-              "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
-              "Parameters": {
-                "command": "status",
-                "commandId.$": "$.commandId"
-              },
-              "Next": "Command Completed?"
-            },
-            "Command Completed?": {
-              "Type": "Choice",
-              "Choices": [
-                {
-                  "Variable": "$.status",
-                  "StringEquals": "SUCCESS",
-                  "Next": "Completed"
-                },
-                {
-                  "Variable": "$.status",
-                  "StringEquals": "FAILED",
-                  "Next": "Failed to Complete"
-                }
-              ],
-              "Default": "Wait Command Completion"
-            },
-            "Completed": {
-              "Type": "Pass",
-              "End": true
-            },
-            "Failed to Complete": {
-              "Type": "Fail",
-              "Error": "RunCommandError",
-              "Cause": "SSM command completed with failures."
-            }
-          }
-        }
-      ],
-      "Retry": [
-        {
-          "ErrorEquals": [
-            "Lambda.ServiceException",
-            "Lambda.AWSLambdaException",
-            "Lambda.SdkClientException"
-          ],
-          "IntervalSeconds": 2,
-          "MaxAttempts": 3,
-          "BackoffRate": 2
-        }
-      ],
-      "Catch": [
-        {
-          "ErrorEquals": [
-            "States.ALL"
-          ],
-          "Next": "Report Completion"
-        }
-      ],
-      "OutputPath": "$[0]",
-      "Next": "Report Completion"
-    },
-    "Report Completion": {
+    "Start Command Execution": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:424371521123:function:CodePipelineCustomActionStack-JobCompletionHandler-bYxLJWSgkJBw",
+      "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
+      "Parameters": {
+        "command": "run",
+        "orderNumber.$": "States.JsonToString($.orderNumber)"
+      },
+      "Next": "Wait Command Completion",
+      "InputPath": "$[0]"
+    },
+    "Wait Command Completion": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "Check Command Status"
+    },
+    "Check Command Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
+      "Parameters": {
+        "command": "status",
+        "commandId.$": "$.commandId"
+      },
+      "Next": "Command Completed?"
+    },
+    "Command Completed?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "SUCCESS",
+          "Next": "Completed"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "FAILED",
+          "Next": "Failed to Complete"
+        }
+      ],
+      "Default": "Wait Command Completion"
+    },
+    "Completed": {
+      "Type": "Pass",
       "End": true
+    },
+    "Failed to Complete": {
+      "Type": "Fail",
+      "Error": "RunCommandError",
+      "Cause": "SSM command completed with failures."
     }
   }
 }
