@@ -32,7 +32,7 @@ Parameters:
     Default: "SalesPortalExportServerlessApp"
   MainGitBranch:
     Type: String
-    Default: "main"
+    Default: "master"
   SamTemplate:
     Type: String
     Default: "template.yaml"
@@ -42,6 +42,9 @@ Parameters:
   TestingStackName:
     Type: String
     Default: "SalesPortalExportServerlessStack-Dev"
+  TestingEnvironment:
+    Type: String
+    Default: "dev"
   TestingPipelineExecutionRole:
     Type: String
     Default: "arn:aws:iam::424371521123:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-BnpLaAtyP0yj"
@@ -63,6 +66,9 @@ Parameters:
   ProdStackName:
     Type: String
     Default: "SalesPortalExportServerlessStack-Prod"
+  ProdEnvironment:
+    Type: String
+    Default: "prod"
   ProdPipelineExecutionRole:
     Type: String
     Default: "arn:aws:iam::424371521123:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-DqP7xsedEfcr"
@@ -85,6 +91,9 @@ Parameters:
   FeatureGitBranch:
     Type: String
     Default: ""
+  ManualApprovalNotificationArn:
+    Type: String
+    Default: "arn:aws:sns:us-east-1:424371521123:CodePipelineApproval"
 
 Conditions:
   IsMainBranchPipeline: !Equals [!Ref FeatureGitBranch, ""]
