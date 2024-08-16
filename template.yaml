@@ -87,6 +87,7 @@ Resources:
     Properties:
       Name: !Sub SalesPortalExportAppStateMachine_${Environment}
       DefinitionUri: statemachine/sales_portal_export_serverless.asl.json
+      Type: EXPRESS
       DefinitionSubstitutions:
         LambdaRunCheckSsmJobArn: !GetAtt SalesPortalExportAppLambdaRunCheckFunction.Arn
       Role: !GetAtt SalesPortalExportAppStateMachineRole.Arn
