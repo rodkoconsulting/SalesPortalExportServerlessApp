@@ -8,34 +8,181 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 300
+    Tracing: Active
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+  ServerName:
+    Type: String
+    Description: Server with Sales Portal app
+    Default: POL-SAGE-01
+  SsmDocumentName:
+    Type: String
+    Description: SSM document to run Sales Portal app (to be dynamically created)
+    Default: SalesPortalExportRunDocument
+
+Conditions:
+  IsTestOnlyResource:
+    !Equals [ !Ref Environment, dev ]
 
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  SalesPortalExportAppStateMachineEventRole:
+    Type: AWS::IAM::Role
     Properties:
-      CodeUri: hello_world/
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: SalesPortalExportAppStateMachineEventPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:SalesPortalExportAppStateMachineErrorTopic_${Environment}"
+      RoleName: !Sub SalesPortalExportAppStateMachineEventRole_${Environment}
+  SalesPortalExportAppStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: VirtualFeedEmpireWinesStateMachinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: '*'
+      RoleName: !Sub SalesPortalExportAppStateMachineRole_${Environment}
+  SalesPortalExportAppStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub SalesPortalExportAppStateMachine_${Environment}
+      DefinitionUri: statemachine/sales_portal_export_serverless.asl.json
+      DefinitionSubstitutions:
+        LambdaRunCheckSsmJobArn: !GetAtt SalesPortalExportAppLambdaRunCheckFunction.Arn
+      Role: !GetAtt SalesPortalExportAppStateMachineRole.Arn
+  SalesPortalExportAppStateMachineFailureEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub SalesPortalExportAppStateMachineFailureEventRule_${Environment}
+      Description: "Send SNS alert upon SalesPortalExportAppStateMachine Failure"
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+            - ABORTED
+            - TIMED_OUT
+          stateMachineArn:
+            - !Ref SalesPortalExportAppStateMachine
+      Targets:
+        - Arn: !Ref SalesPortalExportAppStateMachineErrorTopic
+          Id: !Sub SalesPortalExportAppStateMachineErrorTopic_${Environment}
+  SalesPortalExportAppStateMachineErrorTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub SalesPortalExportAppStateMachineErrorTopic_${Environment}
+      Subscription:
+        - Endpoint: itadmin@polanerselections.com
+          Protocol: email
+  SalesPortalExportAppStateMachineErrorTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Sid: AllowPublishToTopic
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource:
+              - !Ref SalesPortalExportAppStateMachineErrorTopic
+      Topics:
+        - !Ref SalesPortalExportAppStateMachineErrorTopic
+  SalesPortalExportAppLambdaRunCheckFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: SalesPortalExportAppLambdaRunCheckFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                  - ssm:ListCommands
+                Resource: '*'
+      RoleName:
+        !Sub SalesPortalExportAppLambdaRunCheckFunctionRole_${Environment}
+
+  SalesPortalExportAppLambdaRunCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/SalesPortalExportAppLambdaRunCheckFunction/
+      Role: !GetAtt SalesPortalExportAppLambdaRunCheckFunctionRole.Arn
+      FunctionName: !Sub SalesPortalExportAppLambdaRunCheckFunction_${Environment}
+      Environment:
+        Variables:
+          SSM_DOCUMENT_NAME: !Ref SsmDocumentName
+          SERVER_NAME: !Ref ServerName
       Handler: app.lambda_handler
       Runtime: python3.11
+      LoggingConfig:
+        LogGroup: !Ref SalesPortalExportAppLambdaRunCheckFunctionLogGroup
       Architectures:
         - x86_64
-      Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /hello
-            Method: get
+  SalesPortalExportAppLambdaRunCheckFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/SalesPortalExportAppLambdaRunCheckFunctionLogGroup_${Environment}
+      RetentionInDays: 7
 
-Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
