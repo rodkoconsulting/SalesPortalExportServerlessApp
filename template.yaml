@@ -79,6 +79,12 @@ Resources:
                 Resource: '*'
               - Effect: Allow
                 Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
                   - lambda:InvokeFunction
                 Resource: '*'
       RoleName: !Sub SalesPortalExportAppStateMachineRole_${Environment}
@@ -88,9 +94,19 @@ Resources:
       Name: !Sub SalesPortalExportAppStateMachine_${Environment}
       DefinitionUri: statemachine/sales_portal_export_serverless.asl.json
       Type: EXPRESS
+      Logging:
+        Destinations:
+          - !Ref SalesPortalExportAppStateMachineLogGroup
+        IncludeExecutionData: True
+        Level: ALL
       DefinitionSubstitutions:
         LambdaRunCheckSsmJobArn: !GetAtt SalesPortalExportAppLambdaRunCheckFunction.Arn
       Role: !GetAtt SalesPortalExportAppStateMachineRole.Arn
+  SalesPortalExportAppStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/state_machine/SalesPortalExportAppStateMachineLogGroup_${Environment}
+      RetentionInDays: 7
   SalesPortalExportAppStateMachineFailureEventRule:
     Type: AWS::Events::Rule
     Properties:
