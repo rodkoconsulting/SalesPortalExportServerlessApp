@@ -67,6 +67,7 @@ def check_command_status(event):
 def lambda_handler(event, context):
     # Log the received event
     logger.info("Received event: %s", json.dumps(event, indent=2))
+    set_environment_variables()
     command = extract_parameter(event, 'command')
     if command == COMMAND_RUN:
         return run_command(event)
