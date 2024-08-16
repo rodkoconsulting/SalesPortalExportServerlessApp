@@ -1,10 +1,10 @@
 {
-  "Comment": "An example of the Amazon States Language that runs an AWS Batch job and monitors the job until it completes.",
-  "StartAt": "Start Command Execution",
+  "Comment": "A state machine for calling Lambda functions to run Sales Portal Export app via SSM documents and check status via SSM",
+  "StartAt": "Run Sales Portal Export SSM document",
   "States": {
-    "Start Command Execution": {
+    "Run Sales Portal Export SSM document": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
+      "Resource": "${LambdaRunCheckSsmJobArn}",
       "Parameters": {
         "command": "run",
         "orderNumber.$": "States.JsonToString($.orderNumber)"
@@ -15,11 +15,11 @@
     "Wait Command Completion": {
       "Type": "Wait",
       "Seconds": 15,
-      "Next": "Check Command Status"
+      "Next": "Check Sales Portal Export SSM Status"
     },
-    "Check Command Status": {
+    "Check Sales Portal Export SSM Status": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:us-east-1:424371521123:function:SalesPortalExport-RunCheckSsmJob:$LATEST",
+      "Resource": "${LambdaRunCheckSsmJobArn}",
       "Parameters": {
         "command": "status",
         "commandId.$": "$.commandId"
