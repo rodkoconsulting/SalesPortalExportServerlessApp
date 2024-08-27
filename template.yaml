@@ -96,8 +96,9 @@ Resources:
       Type: EXPRESS
       Logging:
         Destinations:
-          - !Ref SalesPortalExportAppStateMachineLogGroup
-        IncludeExecutionData: True
+          - CloudWatchLogsLogGroup:
+            LogGroupArn: !GetAtt SalesPortalExportAppStateMachineLogGroup.Arn
+        IncludeExecutionData: true
         Level: ALL
       DefinitionSubstitutions:
         LambdaRunCheckSsmJobArn: !GetAtt SalesPortalExportAppLambdaRunCheckFunction.Arn
