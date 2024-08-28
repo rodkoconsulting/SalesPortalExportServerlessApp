@@ -81,9 +81,17 @@ Resources:
                 Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
                   - logs:PutLogEvents
                   - logs:PutDestination
                   - logs:PutDestinationPolicy
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
                 Resource: '*'
               - Effect: Allow
                 Action:
