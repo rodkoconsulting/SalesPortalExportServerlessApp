@@ -228,7 +228,7 @@ Resources:
             workingDirectory:
               type: String
               description: (Optional) The path to the SalesPortalExport app on the instance.
-              default: 'D:\\BoiApps\\SalesPortalExport'
+              default: 'D:\BoiApps\SalesPortalExport'
             salesOrderNumber:
               type: String
               description: (Required) Specify the Sales Order Number to import
@@ -236,7 +236,7 @@ Resources:
             commands:
               type: String
               description: "(Required) Specify the SalesPortalExport app executable"
-              default: 'D:\\BoiApps\\SalesPortalExport\\SalesPortalExportIos.exe'
+              default: 'D:\BoiApps\SalesPortalExport\SalesPortalExportIos.exe'
           mainSteps:
             - name: 'windows_script'
               action: 'aws:runPowerShellScript'
