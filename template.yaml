@@ -200,7 +200,7 @@ Resources:
       FunctionName: !Sub SalesPortalExportAppLambdaRunCheckFunction_${Environment}
       Environment:
         Variables:
-          SSM_DOCUMENT_NAME: !Ref SsmDocumentName
+          SSM_DOCUMENT_NAME: !Ref SalesPortalExportAppSsmDocument
           SERVER_NAME: !Ref ServerName
       Handler: app.lambda_handler
       Runtime: python3.11
@@ -213,4 +213,47 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/SalesPortalExportAppLambdaRunCheckFunctionLogGroup_${Environment}
       RetentionInDays: 7
+
+  SalesPortalExportAppSsmDocument:
+      Type: AWS::SSM::Document
+      Properties:
+        Content:
+          schemaVersion: '2.2'
+          description: 'Runs Powershell Script to execute SalesPortalExport app'
+          parameters:
+            executionTimeout:
+              type: String
+              description: (Optional) The time in seconds for a command to complete before it is considered to have failed. Default is 300 (5 minutes). Maximum is 28800 (8 hours).
+              default: '300'
+            workingDirectory:
+              type: String
+              description: (Optional) The path to the SalesPortalExport app on the instance.
+              default: 'D:\\BoiApps\\SalesPortalExport'
+            salesOrderNumber:
+              type: String
+              description: (Required) Specify the Sales Order Number to import
+              default: ''
+            commands:
+              type: String
+              description: "(Required) Specify the SalesPortalExport app executable"
+              default: 'D:\\BoiApps\\SalesPortalExport\\SalesPortalExportIos.exe'
+          mainSteps:
+            - name: 'windows_script'
+              action: 'aws:runPowerShellScript'
+              precondition:
+                StringEquals:
+                  - platformType
+                  - Windows
+              inputs:
+                  workingDirectory: '{{ workingDirectory }}'
+                  timeoutSeconds: '{{ executionTimeout }}'
+                  runCommand:
+                    - '$ErrorActionPreference = \"Stop\"'
+                    - '$jobDirectory = \"{{ workingDirectory }}\"'
+                    - '{{ commands }} {{ salesOrderNumber }}'
+                    - 'if (-not ($?)) { exit $LASTEXITCODE }'
+        DocumentFormat: YAML
+        DocumentType: Command
+        Name: !Sub {SsmDocumentName}_${Environment}
+
 
