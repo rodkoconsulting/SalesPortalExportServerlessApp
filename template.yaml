@@ -254,6 +254,6 @@ Resources:
                     - 'if (-not ($?)) { exit $LASTEXITCODE }'
         DocumentFormat: YAML
         DocumentType: Command
-        Name: !Sub {SsmDocumentName}_${Environment}
+        Name: !Sub ${SsmDocumentName}_${Environment}
 
 
