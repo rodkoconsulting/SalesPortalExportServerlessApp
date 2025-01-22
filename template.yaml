@@ -355,6 +355,10 @@ Resources:
           BatchSize: 1
       Target: !Ref SalesPortalExportAppStateMachine
       TargetParameters:
+        InputTemplate: |
+          {
+            "orderNumber": <$.body>
+          }
         StepFunctionStateMachineParameters:
           InvocationType: REQUEST_RESPONSE
       LogConfiguration:
