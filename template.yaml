@@ -256,4 +256,155 @@ Resources:
         DocumentType: Command
         Name: !Sub ${SsmDocumentName}_${Environment}
 
+  SalesPortalExportAppFifoQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub SalesPortalExportAppFifoQueue.fifo_${Environment}
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      DeduplicationScope: messageGroup
+      FifoThroughputLimit: perMessageGroupId
+      VisibilityTimeout: 120
+      MessageRetentionPeriod: 1209600 # 14 days
+      ReceiveMessageWaitTimeSeconds: 20
+      KmsMasterKeyId: alias/aws/sqs
+      KmsDataKeyReusePeriodSeconds: 300
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SalesPortalExportAppFifoDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  SalesPortalExportAppFifoDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub SalesPortalExportAppFifoDeadLetterQueue_${Environment}
+      MessageRetentionPeriod: 1209600
+
+  SalesPortalExportAppFifoDeadLetterQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub SalesPortalExportAppFifoDeadLetterQueueAlarm_${Environment}
+      AlarmDescription: Alarm if dead-letter queue size exceeds threshold
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt SalesPortalExportAppFifoDeadLetterQueue.QueueName
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref SalesPortalExportAppFifoDeadLetterQueueAlarmTopic
+      TreatMissingData: notBreaching
+
+  SalesPortalExportAppFifoDeadLetterQueueAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub SalesPortalExportAppFifoDeadLetterQueueAlarm_${Environment}
+      Subscription:
+        - Endpoint: itadmin@polanerselections.com
+          Protocol: email
+
+  SalesPortalExportAppFifoQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Allow all actions from root"
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: SQS:*
+            Resource: !GetAtt SalesPortalExportAppFifoQueue.Arn
+      Queues:
+        - !Ref SalesPortalExportAppFifoQueue
+
+  SalesPortalExportAppFifoQueueSendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: SalesPortalExportAppFifoQueueSendPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt SalesPortalExportAppFifoQueue.Arn
+
+  SalesPortalExportAppFifoQueuePipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Name: !Sub SalesPortalExportAppFifoQueuePipe_${Environment}
+      RoleArn: !GetAtt SalesPortalExportAppFifoQueuePipeRole.Arn
+      Source: !GetAtt SalesPortalExportAppFifoQueue.Arn
+      SourceParameters:
+        SqsQueueParameters:
+          BatchSize: 1
+      Target: !Ref SalesPortalExportAppStateMachine
+      TargetParameters:
+        StepFunctionStateMachineParameters:
+          InvocationType: FIRE_AND_FORGET
+      PipeLoggingConfiguration:
+        LogDestination:
+          CloudWatchLogsLogGroup:
+            LogGroupName: !Ref SalesPortalExportAppFifoQueuePipeLogGroup
+
+  SalesPortalExportAppFifoQueuePipeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pipes.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PipesCloudWatchLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt SalesPortalExportAppFifoQueuePipeLogGroup.Arn
+        - PolicyName: PipesSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt SalesPortalExportAppFifoQueue.Arn
+        - PolicyName: PipesStepFunctionsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref SalesPortalExportAppStateMachine
+
+  SalesPortalExportAppFifoQueuePipeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/SalesPortalExportAppFifoQueuePipe_${Environment}
+      RetentionInDays: 7
+
 
