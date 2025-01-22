@@ -408,7 +408,7 @@ Resources:
   SalesPortalExportAppFifoQueuePipeLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/vendedlogs/SalesPortalExportAppFifoQueuePipe_${Environment}
+      LogGroupName: !Sub /aws/sqs/SalesPortalExportAppFifoQueuePipe_${Environment}
       RetentionInDays: 7
 
 
