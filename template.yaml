@@ -362,6 +362,7 @@ Resources:
         StepFunctionStateMachineParameters:
           InvocationType: REQUEST_RESPONSE
       LogConfiguration:
+        Level: ERROR
         CloudwatchLogsLogDestination:
           LogGroupArn: !GetAtt SalesPortalExportAppFifoQueuePipeLogGroup.Arn
 
