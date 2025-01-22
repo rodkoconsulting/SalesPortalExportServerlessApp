@@ -261,14 +261,13 @@ Resources:
     Properties:
       QueueName: !Sub SalesPortalExportAppFifoQueue_${Environment}.fifo
       FifoQueue: true
+      SqsManagedSseEnabled: false
       ContentBasedDeduplication: true
       DeduplicationScope: messageGroup
       FifoThroughputLimit: perMessageGroupId
       VisibilityTimeout: 120
       MessageRetentionPeriod: 1209600 # 14 days
       ReceiveMessageWaitTimeSeconds: 20
-      KmsMasterKeyId: alias/aws/sqs
-      KmsDataKeyReusePeriodSeconds: 300
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SalesPortalExportAppFifoDeadLetterQueue.Arn
         maxReceiveCount: 3
@@ -277,6 +276,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       FifoQueue: true
+      SqsManagedSseEnabled: false
       QueueName: !Sub SalesPortalExportAppFifoDeadLetterQueue_${Environment}.fifo
       MessageRetentionPeriod: 1209600
 
