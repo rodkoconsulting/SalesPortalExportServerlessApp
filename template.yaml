@@ -356,11 +356,10 @@ Resources:
       Target: !Ref SalesPortalExportAppStateMachine
       TargetParameters:
         StepFunctionStateMachineParameters:
-          InvocationType: FIRE_AND_FORGET
-      PipeLoggingConfiguration:
-        LogDestination:
-          CloudWatchLogsLogGroup:
-            LogGroupName: !Ref SalesPortalExportAppFifoQueuePipeLogGroup
+          InvocationType: REQUEST_RESPONSE
+      LogConfiguration:
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt SalesPortalExportAppFifoQueuePipeLogGroup.Arn
 
   SalesPortalExportAppFifoQueuePipeRole:
     Type: AWS::IAM::Role
