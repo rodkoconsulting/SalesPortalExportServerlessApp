@@ -259,7 +259,7 @@ Resources:
   SalesPortalExportAppFifoQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub SalesPortalExportAppFifoQueue.fifo_${Environment}
+      QueueName: !Sub SalesPortalExportAppFifoQueue_${Environment}.fifo
       FifoQueue: true
       ContentBasedDeduplication: true
       DeduplicationScope: messageGroup
