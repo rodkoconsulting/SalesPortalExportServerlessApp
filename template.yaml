@@ -276,7 +276,8 @@ Resources:
   SalesPortalExportAppFifoDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub SalesPortalExportAppFifoDeadLetterQueue_${Environment}
+      FifoQueue: true
+      QueueName: !Sub SalesPortalExportAppFifoDeadLetterQueue_${Environment}.fifo
       MessageRetentionPeriod: 1209600
 
   SalesPortalExportAppFifoDeadLetterQueueAlarm:
