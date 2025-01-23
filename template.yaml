@@ -343,6 +343,8 @@ Resources:
                 Action:
                   - sqs:SendMessage
                 Resource: !GetAtt SalesPortalExportAppFifoQueue.Arn
+      RoleName:
+        !Sub SalesPortalExportAppFifoQueueSendRole_${Environment}
 
   SalesPortalExportAppFifoQueuePipe:
     Type: AWS::Pipes::Pipe
@@ -405,6 +407,7 @@ Resources:
                 Action:
                   - states:StartSyncExecution
                 Resource: !Ref SalesPortalExportAppStateMachine
+      RoleName: !Sub SalesPortalExportAppFifoQueuePipeRole_${Environment}
 
   SalesPortalExportAppFifoQueuePipeLogGroup:
     Type: AWS::Logs::LogGroup
