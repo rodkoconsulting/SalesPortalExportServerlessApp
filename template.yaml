@@ -403,7 +403,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - states:StartExecution
+                  - states:StartSyncExecution
                 Resource: !Ref SalesPortalExportAppStateMachine
 
   SalesPortalExportAppFifoQueuePipeLogGroup:
